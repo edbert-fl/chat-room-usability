@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+.markdown > * {
+  all: revert;
+}
+
 .App {
   display: flex;
   height: 100vh;

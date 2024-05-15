@@ -11,11 +11,23 @@ export interface User {
   username: string;
   email: string;
   createdAt: Date;
+  muted: boolean;
+  role: number;
+  online?: boolean;
 }
 
 export interface FriendRequest {
   id: number;
   sender: User;
+  receiverID: number;
+  accepted: boolean;
+  createdAt: Date;
+}
+
+export interface GroupInvite {
+  id: number;
+  sender: User;
+  group: Group;
   receiverID: number;
   accepted: boolean;
   createdAt: Date;
@@ -29,6 +41,11 @@ export interface Notification {
 
 export interface LoadingRequest {
   request: FriendRequest;
+  loading: boolean;
+}
+
+export interface LoadingGroupInvite {
+  invite: GroupInvite;
   loading: boolean;
 }
 
@@ -50,19 +67,31 @@ export interface PKDF2Keys {
 }
 
 export interface Article {
-  id: number;
+  article_id: number;
+  sponsored_by: string;
   title: string;
   content: string;
   author: User;
   date: Date;
+  anonymous: boolean;
+  endorsed: boolean;
 }
 
 export interface ArticleComment {
-  id: number;
+  comment_id: number;
+  author_id: number;
   articleId: number;
   content: string;
   author: User;
-  datePosted: Date;
+  written_at: Date;
+}
+
+export interface Group {
+  id: number;
+  name: string;
+  dateCreated: Date;
+  groupOwner: User;
+  members: User[];
 }
 
 export const dateTimeFormat = "MM/DD/YYYY h:mm A";

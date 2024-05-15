@@ -7,11 +7,10 @@ import colors from "tailwindcss/colors";
 
 import {
   TokenUpdateContext,
+  UserContext,
   UserUpdateContext,
 } from "../context/UserContextProvider.tsx";
-import { pkdf2DeriveKeysFromPassword } from "../utils/PKDFCrypto.tsx";
-import { ChatRoomConnectionContext } from "../context/EncryptionContextProvider.tsx";
-import { generateKeyPair } from "../utils/WSCrypto.tsx";
+import { ACCESS_LEVEL } from "../utils/UserAccessLevels.tsx";
 
 export const RegisterScreen = () => {
   const [username, setUsername] = useState("");
@@ -22,12 +21,8 @@ export const RegisterScreen = () => {
   const [loading, setLoading] = useState(false);
 
   const setCurrUser = useContext(UserUpdateContext);
+  const currUser = useContext(UserContext);
   const setToken = useContext(TokenUpdateContext);
-  const {
-    setPublicKey,
-    setPrivateKey,
-    setPKDF2Key
-  } = useContext(ChatRoomConnectionContext);
 
   const navigation = useNavigate();
 
@@ -61,9 +56,12 @@ export const RegisterScreen = () => {
       const hashedPassword = crypto.SHA256(password + salt);
       const hashedPasswordString = hashedPassword.toString(crypto.enc.Base64);
 
-      const pkdf2Key = await pkdf2DeriveKeysFromPassword(password, salt);
-      setPKDF2Key(pkdf2Key);
-
+      console.log({
+        username,
+        email,
+        salt,
+        hashedPasswordString
+      })
       const response = await axios.post(
         `${process.env.REACT_APP_HEROKU_URL}/user/register`,
         {
@@ -81,18 +79,15 @@ export const RegisterScreen = () => {
           id: response.data.user.id,
           username: response.data.user.username,
           email: response.data.user.email,
-          createdAt: response.data.user.created_at,
+          createdAt: response.data.user.createdAt,
+          muted: response.data.user.muted,
+          role: response.data.user.role
         });
+        console.log("Account registered");
+        console.log(currUser);
 
-        const generatedKeyPair = await generateKeyPair();
-
-        setPrivateKey(generatedKeyPair.privateKey);
-        setPublicKey(generatedKeyPair.publicKey);
-        
         setToken(response.data.token);
 
-        const pkdf2Key = await pkdf2DeriveKeysFromPassword(password, salt);
-        setPKDF2Key(pkdf2Key);
         setLoading(false);
         navigation("/");
       } else {

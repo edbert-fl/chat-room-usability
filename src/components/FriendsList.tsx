@@ -1,19 +1,13 @@
 import React, { useContext, useEffect, useState } from "react";
-import { RiUserAddLine } from "react-icons/ri";
-import colors from "tailwindcss/colors";
 import { User } from "../utils/Types.tsx";
-import RandomEmoji from "./RandomEmoji.tsx";
-import { Link } from "react-router-dom";
-import { FiLogOut } from "react-icons/fi";
-import {
-  TokenUpdateContext,
-  UserUpdateContext,
-} from "../context/UserContextProvider.tsx";
+import { RandomEmoji } from "./RandomEmoji.tsx";
+import { TokenContext, UserContext } from "../context/UserContextProvider.tsx";
+import { FaCircle, FaTimes, FaTrash } from "react-icons/fa";
+import colors from "tailwindcss/colors";
 
 interface FriendsListProps {
   selectedFriend: User | null;
   handleFriendSelect: (friend: User) => void;
-  toggleFriendSearch: () => void;
   friends: User[];
   getFriends: () => void;
 }
@@ -21,76 +15,99 @@ interface FriendsListProps {
 export const FriendsList: React.FC<FriendsListProps> = ({
   selectedFriend,
   handleFriendSelect,
-  toggleFriendSearch,
   friends,
   getFriends,
 }) => {
-  const [friendListLoading, setFriendListLoading] = useState(false);
-
   useEffect(() => {
-    setFriendListLoading(true);
     getFriends();
-    setFriendListLoading(false);
-    // eslint-disable-next-line
   }, []);
+  const token = useContext(TokenContext);
+  const currUser = useContext(UserContext);
+  const [loading, setLoading] = useState(false);
+
+  const deleteFriend = (friendID) => {
+    const endpoint = "friend/delete";
+    const url = `${process.env.REACT_APP_HEROKU_URL}/${endpoint}`;
+
+    // The payload to be sent to the server
+    const requestData = {
+      user1Id: currUser!.id,
+      user2Id: friendID,
+    };
+
+    setLoading(true);
+
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        UserID: `${currUser!.id}`,
+        Email: `${currUser!.email}`,
+      },
+      body: JSON.stringify(requestData),
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        setLoading(false);
+        if (result.success) {
+          console.log("Friend deleted successfully:", result);
+        } else {
+          console.error("Error deleting friend:", result.error);
+        }
+      })
+      .catch((error) => {
+        setLoading(false);
+        console.error("Network error:", error);
+      });
+    getFriends();
+  };
 
   return (
-    <>
-      <div className="pt-5 p-4 mx-2 flex items-center justify-between">
-        <h2 className="text-lg font-semibold inline-block">Friends</h2>
-        <button
-          className="bg-transparent hover:bg-transparent w-10 h-10 pt-3 items-center justify-center"
-          onClick={toggleFriendSearch}
-        >
-          <RiUserAddLine size={24} color={colors.black} />
-        </button>
-      </div>
-
-      {friendListLoading ? (
-        <div className="h-[80%]">
-          <div className="animate-pulse p-5 flex h-10 w-4/5 space-x-4">
-            <div className="flex-1 space-y-2 py-1">
-              <div className="grid grid-cols-4 gap-1">
-                <div className="h-5 bg-gray-200 rounded col-span-3"></div>
+    <div className="w-full px-2 flex justify-between h-max-[90%] mt-2">
+      <ul className="h-[90%] w-full ">
+        {friends.map((friend) => (
+          <li
+            key={friend.id}
+            className={`cursor-pointer py-2 px-4 my-1 rounded-md ${
+              selectedFriend && selectedFriend.id === friend.id
+                ? "bg-teal-100"
+                : "hover:bg-slate-100"
+            }`}
+            onClick={() => handleFriendSelect(friend)}
+          >
+            <div className="flex flex-row justify-between">
+              <div className="flex flex-row">
+                {friend.online ? (
+                  <FaCircle
+                    size={9}
+                    className={`text-green-500 shadow-white shadow-lg mt-[.375rem] mr-2`}
+                  />
+                ) : (
+                  <FaCircle
+                    size={9}
+                    className={`text-gray-500 shadow-white shadow-lg mt-[.375rem] mr-2`}
+                  />
+                )}
+                {<RandomEmoji id={friend.id} />} {friend.username}
               </div>
-              <div className="grid grid-cols-3 gap-1">
-                <div className="h-5 bg-gray-200 rounded col-span-2"></div>
-                <div className="h-5 bg-gray-200 rounded col-span-1"></div>
-              </div>
-              <div className="pt-5 grid grid-cols-5 gap-1">
-                <div className="h-5 bg-gray-200 rounded col-span-3"></div>
-                <div className="h-5 bg-gray-200 rounded col-span-1"></div>
-              </div>
-              <div className="grid grid-cols-6 gap-1">
-                <div className="h-5 bg-gray-200 rounded col-span-1"></div>
-                <div className="h-5 bg-gray-200 rounded col-span-3"></div>
+              <div>
+                {friend.id === selectedFriend?.id ? (
+                  <button
+                    className="p-0 pt-[0.35rem] m-0 bg-transparent flex align-top hover:bg-transparent text-2xl"
+                    onClick={() => deleteFriend(friend.id)}
+                  >
+                    <FaTrash
+                      size={13}
+                      className="text-teal-700 hover:text-teal-600"
+                    />
+                  </button>
+                ) : null}
               </div>
             </div>
-          </div>
-        </div>
-      ) : (
-        <ul className="h-[30%]">
-          {friends.map((friend) => (
-            <li
-              key={friend.id}
-              className={`cursor-pointer py-2 px-4 mx-2 my-1 rounded-md ${
-                selectedFriend && selectedFriend.id === friend.id
-                  ? "bg-teal-300"
-                  : ""
-              }
-              ${
-                selectedFriend && selectedFriend.id !== friend.id
-                  ? "hover:bg-gray-100"
-                  : ""
-              }`}
-              onClick={() => handleFriendSelect(friend)}
-            >
-              <span className="text-xl">{<RandomEmoji id={friend.id} />}</span>{" "}
-              {friend.username}
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 };

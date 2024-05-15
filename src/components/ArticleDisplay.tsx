@@ -1,94 +1,75 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { Dispatch, SetStateAction, useContext, useEffect, useState } from "react";
 import { Article, ArticleComment } from "../utils/Types";
-import { CommentService } from "../services/CommentService.tsx";
+import { ACCESS_LEVEL, ROLE, ROLE_COLORS } from "../utils/UserAccessLevels.tsx";
+import { CommentBox } from "./CommentBox.tsx";
+import remarkGfm from "remark-gfm";
+import Markdown from "react-markdown";
+import { FaEdit } from "react-icons/fa";
+import colors from "tailwindcss/colors";
 import { UserContext } from "../context/UserContextProvider.tsx";
-import RandomEmoji from "./RandomEmoji.tsx";
 
 interface ArticleDisplayProps {
-  article: Article;
+  selectedArticle: Article;
+  toggleEditArticleScreen: () => void;
+  comments: ArticleComment[]
+  setComments: Dispatch<SetStateAction<ArticleComment[]>>;
 }
 
-export const ArticleDisplay: React.FC<ArticleDisplayProps> = ({ article }) => {
-  const [comments, setComments] = useState<ArticleComment[]>([]);
-  const [commentDraft, setCommentDraft] = useState("");
-
+export const ArticleDisplay: React.FC<ArticleDisplayProps> = ({
+  selectedArticle,
+  toggleEditArticleScreen,
+  comments,
+  setComments
+}) => {
   const currUser = useContext(UserContext);
 
-  useEffect(() => {
-    getComments(article.id);
-  }, []);
-
-  const getComments = async (articleId: number) => {
-    try {
-      const fetchedComments = await CommentService.getCommentsForArticle(
-        articleId
-      );
-      setComments(fetchedComments);
-    } catch (error) {
-      console.error("Error fetching comments:", error);
-    }
-  };
-
-  const addNewComment = async (commentContent: string) => {
-    const newComment = {
-      id: 3,
-      articleId: article.id,
-      content: commentContent,
-      author: currUser!,
-      datePosted: new Date(),
-    };
-
-    try {
-      await CommentService.addComment(newComment); // Call addComment method
-      console.log("New comment added successfully!");
-    } catch (error) {
-      console.error("Error adding comment:", error);
-    }
-  };
-
   return (
-    <div className="flex-1 pt-6 pl-6 pr-6 mt-2 flex flex-col">
-      <div className="flex-1 p-12 mt-2 flex rounded-tl-3xl rounded-tr-3xl drop-shadow-xl bg-white flex-col">
+    <div className="flex-1 pt-6 pl-6 pr-6 flex flex-col overflow-y-auto max-h-[100vh]">
+      <div className="flex-1 p-12 my-2 flex rounded-3xl drop-shadow-xl bg-white flex-col px-[12%]">
+        {selectedArticle.sponsored_by ? (
+          <h4 className="text-md text-gray-500">
+            This article was Sponsored by {selectedArticle.sponsored_by}
+          </h4>
+        ) : null}
         {/* Article title */}
-        <h2 className="text-lg font-semibold mb-4">
-          <span className="text-[28px]">{article.title}</span>{" "}
-        </h2>
+        <div className="flex flex-row justify-between items-center">
+          <div className="text-lg font-semibold justify-center">
+            <span className="text-[28px]">{selectedArticle.title}</span>{" "}
+          </div>
+          {currUser!.id === selectedArticle.author.id ||
+          currUser!.role >= ACCESS_LEVEL.ACADEMIC ? (
+            <button
+              className="bg-transparent hover:bg-transparent w-10 h-10 pt-3 items-center justify-center"
+              onClick={toggleEditArticleScreen}
+            >
+              <FaEdit className="mt-1" color={colors.gray[700]} size={24} />
+            </button>
+          ) : null}
+        </div>
 
         {/* Article author */}
-        <h4 className="text-md font-light mb-4">
-          Written by {article.author.username}
+        <h4 className="text-lg text-gray-500">
+          Written by{" "}
+          <span
+            style={{ color: ROLE_COLORS[selectedArticle.author.role] }}
+            className="font-bold"
+          >
+            {selectedArticle.author.username} · {ROLE[selectedArticle.author.role]}
+          </span>
         </h4>
 
         {/* Article content */}
-        <p>{article.content}</p>
-
-        <div className="mt-20">
-          <h3 className="text-lg font-semibold mb-2">Comments</h3>
-          {/* Render existing comments */}
-          <ul>
-            {comments.map((comment, index) => (
-              <li key={index} className="mb-5">
-                <h4 className="text-md text-violet-700 font-bold">
-                  <RandomEmoji id={comment.author.id} />{" "}
-                  {comment.author.username} {" "} 
-                  <span className={`text-gray-500 text-xs font-medium`}>
-                    {new Date(comment.datePosted).toLocaleString("en-US", {
-                      month: "2-digit",
-                      day: "2-digit",
-                      year: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                      hour12: true,
-                    })}
-                  </span>
-                </h4>
-                {comment.content}
-              </li>
-            ))}
-          </ul>
+        <div className="w-full mt-5">
+          <Markdown
+            remarkPlugins={[remarkGfm]}
+            className="prose-base prose-headings:font-bold prose-neutral"
+          >
+            {selectedArticle.content}
+          </Markdown>
         </div>
+
+        <CommentBox articleId={selectedArticle.article_id} comments={comments} setComments={setComments}/>
       </div>
-      {/* Comments section */}
     </div>
   );
 };

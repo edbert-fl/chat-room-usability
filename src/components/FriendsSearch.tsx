@@ -1,19 +1,17 @@
 import React, { useContext, useEffect, useState } from "react";
 import { IoArrowBack } from "react-icons/io5";
 import colors from "tailwindcss/colors";
-import { LoadingRequest } from "../utils/Types";
+import { FriendRequest, LoadingRequest } from "../utils/Types";
 import { TokenContext, UserContext } from "../context/UserContextProvider.tsx";
 import { bouncy } from "ldrs";
-import RandomEmoji from "./RandomEmoji.tsx";
+import { RandomEmoji } from "./RandomEmoji.tsx";
 
 interface FriendsSearchProps {
-  friendSearchIsOpen: boolean;
   toggleFriendSearch: () => void;
   triggerNotification: (success: boolean, message: string) => void;
 }
 
 export const FriendsSearch: React.FC<FriendsSearchProps> = ({
-  friendSearchIsOpen,
   toggleFriendSearch,
   triggerNotification,
 }) => {
@@ -30,51 +28,50 @@ export const FriendsSearch: React.FC<FriendsSearchProps> = ({
     // eslint-disable-next-line
   }, []);
 
-  const sendFriendRequest = (requestedUsername) => {
-    setLoading(true);
-    fetch(`${process.env.REACT_APP_HEROKU_URL}/friend/add`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        UserID: `${currUser!.id}`,
-        Email: `${currUser!.email}`,
-      },
-      body: JSON.stringify({
-        sender_id: currUser!.id,
-        friend_name: requestedUsername,
-      }),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          return response.json().then((data) => {
-            if (data.error) {
-              triggerNotification(false, `${data.error}`);
-            } else {
-              triggerNotification(false, `Error sending friend request`);
-            }
-          });
-        }
-        return response.json();
-      })
-      .then((data) => {
-        if (!data) {
-          return;
-        }
-        triggerNotification(true, `Friend request sent`);
-        getFriendRequests();
-      })
-      .catch((error) => {
-        console.error("Network error:", error);
-        triggerNotification(false, "Network error");
-      });
-    setLoading(false);
+  const getFriendRequests = () => {
+    handleFriendRequest(
+      "user/get/friend-requests",
+      { userID: currUser!.id },
+      null,
+      "Error fetching friend requests"
+    );
   };
 
-  const getFriendRequests = () => {
-    const requestData = { userID: currUser!.id };
+  const sendFriendRequest = (requestedUsername: string) => {
+    handleFriendRequest(
+      "friend/add",
+      { sender_id: currUser!.id, friend_name: requestedUsername },
+      "Friend request sent",
+      "Error sending friend request"
+    );
+  };
 
-    fetch(`${process.env.REACT_APP_HEROKU_URL}/user/get/friend-requests`, {
+  const acceptFriendRequest = (request: FriendRequest) => {
+    handleFriendRequest(
+      "friend/accept",
+      { request_id: request.id },
+      "Friend request accepted",
+      "Error accepting friend request"
+    );
+  };
+
+  const rejectFriendRequest = (request: FriendRequest) => {
+    handleFriendRequest(
+      "friend/reject",
+      { request_id: request.id },
+      "Friend request rejected",
+      "Error rejecting friend request"
+    );
+  };
+
+  const handleFriendRequest = (
+    endpoint,
+    requestData,
+    successMessage,
+    errorMessage
+  ) => {
+    setLoading(true);
+    fetch(`${process.env.REACT_APP_HEROKU_URL}/${endpoint}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -86,112 +83,48 @@ export const FriendsSearch: React.FC<FriendsSearchProps> = ({
     })
       .then((response) => {
         if (!response.ok) {
-          throw new Error("Network response was not ok");
+          return response.json().then((data) => {
+            if (data.error) {
+              triggerNotification(false, `${data.error}`);
+            } else {
+              triggerNotification(false, errorMessage);
+            }
+          });
         }
         return response.json();
       })
       .then((data) => {
-        const loadingRequests: LoadingRequest[] = data.friendRequests.map(
-          (friendRequest) => ({
+        if (!data) {
+          return;
+        }
+        if (successMessage != null) {
+          triggerNotification(true, successMessage);
+        }
+        if (endpoint === "friend/add") {
+          getFriendRequests();
+        } else if (endpoint === "user/get/friend-requests") {
+          const loadingRequests = data.friendRequests.map((friendRequest) => ({
             request: friendRequest,
             loading: false,
-          })
-        );
-        setFriendRequests(loadingRequests);
-      })
-      .catch((error) => {
-        triggerNotification(false, `Error fetching friend requests`);
-      });
-  };
-
-  const acceptFriendRequest = (loadingRequest: LoadingRequest) => {
-    const { request, loading } = loadingRequest;
-
-    if (loading) return;
-
-    // Update the loading state for the request
-    setFriendRequests((prevRequests) =>
-      prevRequests.map((req) =>
-        req.request.id === request.id ? { ...req, loading: true } : req
-      )
-    );
-
-    // Send a POST request to the server to accept the friend request
-    fetch(`${process.env.REACT_APP_HEROKU_URL}/friend/accept`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        UserID: `${currUser!.id}`,
-        Email: `${currUser!.email}`,
-      },
-      body: JSON.stringify({ request_id: request.id }),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
+          }));
+          setFriendRequests(loadingRequests);
+        } else if (
+          endpoint === "friend/accept" ||
+          endpoint === "friend/reject"
+        ) {
+          setFriendRequests((prevRequests) =>
+            prevRequests.filter(
+              (req) => req.request.id !== requestData.request_id
+            )
+          );
         }
-        return response.json();
-      })
-      .then((data) => {
-        triggerNotification(true, `Friend request accepted`);
-        setFriendRequests((prevRequests) =>
-          prevRequests.filter((req) => req.request.id !== request.id)
-        );
       })
       .catch((error) => {
-        console.error("Error accepting friend request:", error);
-        setFriendRequests((prevRequests) =>
-          prevRequests.map((req) =>
-            req.request.id === request.id ? { ...req, loading: false } : req
-          )
-        );
-      });
-  };
-
-  const rejectFriendRequest = (loadingRequest: LoadingRequest) => {
-    const { request, loading } = loadingRequest;
-
-    if (loading) return;
-
-    // Update the loading state for the request
-    setFriendRequests((prevRequests) =>
-      prevRequests.map((req) =>
-        req.request.id === request.id ? { ...req, loading: true } : req
-      )
-    );
-
-    // Send a POST request to the server to accept the friend request
-    fetch(`${process.env.REACT_APP_HEROKU_URL}/friend/reject`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        UserID: `${currUser!.id}`,
-        Email: `${currUser!.email}`,
-      },
-      body: JSON.stringify({ request_id: request.id }),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        return response.json();
+        console.error("Network error:", error);
+        triggerNotification(false, "Network error");
       })
-      .then((data) => {
-        console.log(data);
-        triggerNotification(true, `Friend request rejected`);
-        setFriendRequests((prevRequests) =>
-          prevRequests.filter((req) => req.request.id !== request.id)
-        );
-      })
-      .catch((error) => {
-        console.error("Error accepting friend request:", error);
-        setFriendRequests((prevRequests) =>
-          prevRequests.map((req) =>
-            req.request.id === request.id ? { ...req, loading: false } : req
-          )
-        );
+      .finally(() => {
+        setLoading(false);
       });
   };
 
@@ -202,13 +135,9 @@ export const FriendsSearch: React.FC<FriendsSearchProps> = ({
 
   return (
     <div
-      className={`fixed inset-y-0 left-0 border-r bg-white pr-5 w-1/4 min-w-80 border-gray-300 ${
-        friendSearchIsOpen
-          ? "transition-all duration-300 ease-in-out transform translate-x-0"
-          : "transition-all duration-300 ease-in-out transform -translate-x-full"
-      }`}
+      className="w-full"
     >
-      <div className="pt-5 p-2 flex items-center">
+      <div className="pt-5 flex items-center">
         <button
           className="bg-transparent hover:bg-transparent w-10 h-10 pt-3 items-center justify-center"
           onClick={toggleFriendSearch}
@@ -231,7 +160,7 @@ export const FriendsSearch: React.FC<FriendsSearchProps> = ({
               }
             }}
           />
-          <div className="ml-1 w-1/4 flex justify-center items-center">
+          <div className=" flex justify-center items-center">
             {loading ? (
               <l-bouncy size="35" speed="1.75" color={colors.teal[600]} />
             ) : (
@@ -267,13 +196,17 @@ export const FriendsSearch: React.FC<FriendsSearchProps> = ({
                   <div className="my-2 w-full flex flex-row">
                     <button
                       className="bg-teal-500 text-white text-sm w-20 py-2 ml-1 rounded-md hover:bg-teal-600"
-                      onClick={() => acceptFriendRequest(loadingRequest)}
+                      onClick={() =>
+                        acceptFriendRequest(loadingRequest.request)
+                      }
                     >
                       Accept
                     </button>
                     <button
                       className="bg-rose-500 text-white text-sm w-20 py-2 ml-1 rounded-md hover:bg-rose-600"
-                      onClick={() => rejectFriendRequest(loadingRequest)}
+                      onClick={() =>
+                        rejectFriendRequest(loadingRequest.request)
+                      }
                     >
                       Reject
                     </button>

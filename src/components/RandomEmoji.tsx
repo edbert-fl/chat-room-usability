@@ -1,14 +1,21 @@
-import React from 'react';
+import React from "react";
 
 interface RandomEmojiProps {
-    id: number
+  id: number;
 }
 
 const RandomEmoji: React.FC<RandomEmojiProps> = ({ id }) => {
-  const emojis = ['🐶', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🦁','🐬', '🐳', '🐙'];
+  const emojis = ["🐶", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🦁", "🐬", "🐳", "🐙",];
   const index = id % emojis.length;
   const emoji = emojis[index];
   return emoji;
 };
 
-export default RandomEmoji;
+const RandomGroupsEmoji: React.FC<RandomEmojiProps> = ({ id }) => {
+  const emojis = ["😂", "🎉", "🤔", "🙌", "😎", "🥳", "🤗", "🤣", "😊", "🚀"];
+  const index = id % emojis.length;
+  const emoji = emojis[index];
+  return emoji;
+};
+
+export { RandomEmoji, RandomGroupsEmoji };

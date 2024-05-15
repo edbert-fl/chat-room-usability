@@ -23,7 +23,7 @@ const NotificationPopup: React.FC<NotificationPopupProps> = ({
 
   return (
     <div
-      className={`fixed right-10 flex items-center bg-black bg-opacity-80 text-white px-4 py-2 rounded-md transition-all duration-500 ${
+      className={`fixed right-10 z-[1000] flex items-center bg-black bg-opacity-80 text-white px-4 py-2 rounded-md transition-all duration-500 ${
         show ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full"
       }`}
       style={{ top: `${(index * 3 + 2.5).toString()}rem` }}

@@ -2,14 +2,12 @@ import React, { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   TokenUpdateContext,
+  UserContext,
   UserUpdateContext,
 } from "../context/UserContextProvider.tsx";
 import axios from "axios";
 import { bouncy } from "ldrs";
 import colors from "tailwindcss/colors";
-import { ChatRoomConnectionContext } from "../context/EncryptionContextProvider.tsx";
-import { pkdf2DeriveKeysFromPassword } from "../utils/PKDFCrypto.tsx";
-import { generateKeyPair } from "../utils/WSCrypto.tsx";
 
 export const LoginScreen = () => {
   const [username, setUsername] = useState("");
@@ -20,12 +18,8 @@ export const LoginScreen = () => {
   const navigation = useNavigate();
 
   const setCurrUser = useContext(UserUpdateContext);
+  const currUser = useContext(UserContext);
   const setToken = useContext(TokenUpdateContext);
-  const {
-    setPublicKey,
-    setPrivateKey,
-    setPKDF2Key
-  } = useContext(ChatRoomConnectionContext);
 
   // Activity Indicator
   bouncy.register();
@@ -51,21 +45,17 @@ export const LoginScreen = () => {
         }
       );
       if (response.status === 200) {
+        console.log(response.data);
         setCurrUser({
           id: response.data.user.id,
           username: response.data.user.username,
           email: response.data.user.email,
-          createdAt: response.data.user.created_at,
+          createdAt: response.data.user.createdAt,
+          muted: response.data.user.muted,
+          role: response.data.user.role
         });
-
-        const generatedKeyPair = await generateKeyPair();
-
-        setPrivateKey(generatedKeyPair.privateKey);
-        setPublicKey(generatedKeyPair.publicKey);
         setToken(response.data.token);
-
-        const pkdf2Key = await pkdf2DeriveKeysFromPassword(password, response.data.user.salt);
-        setPKDF2Key(pkdf2Key);
+        console.log(currUser);
 
         setLoading(false);
         navigation("/");

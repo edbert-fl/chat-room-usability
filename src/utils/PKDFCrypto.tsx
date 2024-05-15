@@ -189,14 +189,3 @@ const pkdfDemo = async () => {
     console.error("Error during PKDF demo:", error);
   }
 };
-
-export {
-  pkdf2DeriveKeysFromPassword,
-  pkdf2EncryptMessage,
-  pkdf2DecryptMessage,
-  pbkdf2KeyToString,
-  stringToPbkdf2Key,
-  bufferToString,
-  stringToBuffer,
-  pkdfDemo,
-};

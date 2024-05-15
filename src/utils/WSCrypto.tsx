@@ -178,15 +178,3 @@ const runDemo = async () => {
 
   console.log("Decrypted message:", decryptedMessage);
 };
-
-export {
-  generateKeyPair,
-  wsEncryptMessage,
-  wsDecryptMessage,
-  exportPublicKeyToJWK,
-  importPublicKeyFromJWK,
-  arrayBufferToBase64,
-  base64ToArrayBuffer,
-  generateHMACKey,
-  runDemo,
-};
