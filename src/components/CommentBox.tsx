@@ -42,6 +42,17 @@ export const CommentBox: React.FC<CommentBoxProps> = ({
         return response.json();
       })
       .then((data) => {
+        if (data.user.muted) {
+          ws?.send(JSON.stringify({
+            type: WS_CODE.MUTED,
+            receiverId: userId
+          }))
+        } else {
+          ws?.send(JSON.stringify({
+            type: WS_CODE.UNMUTED,
+            receiverId: userId
+          }))
+        }
         getCommentsForArticle();
       })
       .catch((error) => {

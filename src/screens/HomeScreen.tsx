@@ -1,5 +1,11 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { Article, ArticleComment, Group, Message, User } from "../utils/Types.tsx";
+import {
+  Article,
+  ArticleComment,
+  Group,
+  Message,
+  User,
+} from "../utils/Types.tsx";
 import { Notification } from "../utils/Types.tsx";
 import NotificationStack from "../components/NotificationStack.tsx";
 import { ChatRoom } from "../components/ChatRoom.tsx";
@@ -15,6 +21,7 @@ import { GroupChatRoom } from "../components/GroupChatRoom.tsx";
 import { WebSocketContext } from "../context/WebSocketContextProvider.tsx";
 import WS_CODE from "../utils/WebscoketCodes.tsx";
 import { EditArticle } from "../components/EditArticle.tsx";
+import { WSConnectionHandler } from "../components/WSConnectionHandler.tsx";
 
 const HomeScreen = () => {
   const currUser = useContext(UserContext);
@@ -36,7 +43,7 @@ const HomeScreen = () => {
 
   const [newArticleEditorIsOpen, setNewArticleEditorIsOpen] = useState(false);
   const [editArticleIsOpen, setEditArticleIsOpen] = useState(false);
-  
+
   const ws = useContext(WebSocketContext);
   const friendsRef = useRef<User[]>([]);
 
@@ -275,6 +282,16 @@ const HomeScreen = () => {
 
   return (
     <div className="h-full w-full bg-gray-50 flex flex-row">
+      <WSConnectionHandler
+        selectedFriend={selectedFriend}
+        setMessages={setMessages}
+        setGroupMessages={setGroupMessages}
+        friends={friends}
+        setFriends={setFriends}
+        selectedArticle={selectedArticle}
+        setComments={setComments}
+        triggerNotification={triggerNotification}
+      />
       <Sidebar
         groups={groups}
         getGroups={getGroups}
@@ -303,7 +320,7 @@ const HomeScreen = () => {
             setComments={setComments}
           />
         ) : newArticleEditorIsOpen ? (
-          <NewArticleEditor handleArticleSelect={handleArticleSelect}/>
+          <NewArticleEditor handleArticleSelect={handleArticleSelect} />
         ) : editArticleIsOpen ? (
           <EditArticle
             handleArticleSelect={handleArticleSelect}
@@ -323,11 +340,6 @@ const HomeScreen = () => {
             selectedFriend={selectedFriend}
             messages={messages}
             setMessages={setMessages}
-            setGroupMessages={setGroupMessages}
-            friends={friends}
-            setFriends={setFriends}
-            selectedArticle={selectedArticle}
-            setComments={setComments}
           />
         )}
       </div>

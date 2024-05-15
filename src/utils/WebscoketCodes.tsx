@@ -5,6 +5,7 @@ const WS_CODE = {
     PACKET_DISCONNECT: 4,
     COMMENT_TRANSFER: 5,
     MUTED: 6,
+    UNMUTED: 7
 };
 
 export default WS_CODE;

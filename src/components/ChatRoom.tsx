@@ -19,22 +19,12 @@ interface ChatRoomProps {
   selectedFriend: User | null;
   messages: Message[];
   setMessages: Dispatch<SetStateAction<Message[]>>;
-  setGroupMessages: Dispatch<SetStateAction<Message[]>>;
-  friends: User[];
-  setFriends: Dispatch<SetStateAction<User[]>>;
-  selectedArticle: Article | null;
-  setComments: Dispatch<SetStateAction<ArticleComment[]>>;
 }
 
 export const ChatRoom: React.FC<ChatRoomProps> = ({
   selectedFriend,
   messages,
-  setMessages,
-  setGroupMessages,
-  friends,
-  setFriends,
-  selectedArticle,
-  setComments
+  setMessages
 }) => {
   let prevAuthorID: number | null = null;
 
@@ -52,105 +42,6 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
   }, [selectedFriend]);
 
   const [messageDraft, setMessageDraft] = useState<string>("");
-
-  useEffect(() => {
-    if (!ws || ws.readyState === ws.CLOSING || ws.readyState === ws.CLOSED) {
-      const newWs = new WebSocket(
-        `${process.env.REACT_APP_WEBSOCKET_SERVER as string}?userId=${
-          currUser!.id
-        }`
-      );
-
-      newWs.onopen = () => {
-        console.log("WebSocket connection established.");
-      };
-
-      newWs.onmessage = async (event) => {
-        const websocketMessage = JSON.parse(event.data);
-
-        if (websocketMessage.type !== WS_CODE.CHECK_ONLINE)
-          console.log("received message", websocketMessage)
-
-        if (websocketMessage.type === WS_CODE.MESSAGE_TRANSFER) {
-          try {
-            setMessages((prevMessages) => [
-              ...prevMessages,
-              websocketMessage.data,
-            ]);
-          } catch (error) {
-            console.error("Error receiving and decrypting message:", error);
-          }
-        } else if (websocketMessage.type === WS_CODE.GROUP_MESSAGE_TRANSFER) {
-          try {
-            setGroupMessages((prevMessages) => [
-              ...prevMessages,
-              websocketMessage.data,
-            ]);
-          } catch (error) {
-            console.error("Error receiving and decrypting message:", error);
-          }
-        } else if (websocketMessage.type === WS_CODE.CHECK_ONLINE) {
-          try {
-            setFriends(websocketMessage.data.friends)
-          } catch (error) {
-            console.error("Error setting friends", error);
-          }
-        } else if (websocketMessage.type === WS_CODE.PACKET_DISCONNECT) {
-          if (
-            websocketMessage.data.senderID === prevSelectedFriend.current?.id
-          ) {
-            console.log(
-              `Deleting ${prevSelectedFriend.current?.username}'s public key`
-            );
-          }
-        } else if (websocketMessage.type === WS_CODE.COMMENT_TRANSFER) {
-          console.log(websocketMessage.data.article_id)
-          console.log(selectedArticle)
-          console.log(websocketMessage.data.author_id)
-          console.log(currUser!.id)
-          if (
-            websocketMessage.data.article_id === selectedArticle?.article_id &&
-            websocketMessage.data.author_id !== currUser!.id
-          ) {
-            console.log("Comment transfer", websocketMessage);
-            setComments(prevComments => [...prevComments, websocketMessage.data]);
-          }
-        }
-      };
-      
-      newWs.onclose = () => {
-        console.log("WebSocket connection closed.");
-      };
-
-      newWs.onerror = (error) => {
-        console.error("WebSocket error:", error);
-      };
-
-      setWs(newWs);
-
-      // Clean up WebSocket connection on unmount
-      return () => {
-        if (
-          newWs &&
-          newWs.readyState !== WebSocket.CLOSING &&
-          newWs.readyState !== WebSocket.CLOSED &&
-          selectedFriend
-        ) {
-          newWs.send(
-            JSON.stringify({
-              type: WS_CODE.PACKET_DISCONNECT,
-              data: {
-                senderID: currUser!.id,
-                friends: friends
-              },
-            })
-          );
-          newWs.close();
-        }
-      };
-    }
-    // eslint-disable-next-line
-  }, [currUser, setMessages, selectedFriend]);
 
   const sendMessage = async (messageDraftContent) => {
     fetch(`${process.env.REACT_APP_HEROKU_URL}/message/send`, {
